@@ -6,9 +6,11 @@ def callback(conn, sender, obj, iface, signal, value):
     print(obj_changed, properties)
     return None
 
-conn = Gio.bus_get_sync(Gio.BusType.SESSION)
+def log(conn, sender, obj, iface, signal, value):
+    obj_changed, properties, args = value
+    
 
-#print (conn.init())
+conn = Gio.bus_get_sync(Gio.BusType.SESSION)
 
 conn.signal_subscribe(
     'org.mpris.MediaPlayer2.vlc',
