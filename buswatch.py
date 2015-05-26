@@ -1,14 +1,72 @@
 from gi.repository import GLib
 from gi.repository import Gio
+from time import time
+
+class Log():
+    def __init__(self, url, metadata, timestamp=None):
+        if timestamp is None:
+            self.timestamp = time()
+        else:
+            self.timestamp = timestamp
+        
+        self.url = url
+        self.metadata = metadata
+        
+    def __repr__(self):
+        return str(vars(self))
+        
+        
+logged = None
+timer_id = -1
+
+def log(data):
+    print ('LOGGING:', data)
+    return False
+
 
 def callback(conn, sender, obj, iface, signal, value):
+    global logged
+    global timer_id
     obj_changed, properties, args = value
-    print(obj_changed, properties)
-    return None
+    print ('DEBUG:', properties)
+    if 'Metadata' in properties:
+        url = properties['Metadata']['xesam:url']
+        duration = properties['Metadata']['vlc:time']
+        metadata = properties['Metadata']
 
-def log(conn, sender, obj, iface, signal, value):
-    obj_changed, properties, args = value
-    
+        now = time()
+        
+        if logged is None:
+            assert timer_id == -1, 'logged is None. Timer Id should be -1'
+            logged = Log(url, metadata)
+            timer_id= GLib.timeout_add_seconds(int(.5*duration), log, logged)
+            
+        elif logged.url == url:
+            lapse = now - logged.timestamp
+            if lapse > .5 * duration:
+                log(logged)
+                logged = None
+                if timer_id > -1:
+                    GLib.source_remove(timer_id)
+                    timer_id = -1
+            else:    
+                delta = int(.5 * duration) - lapse
+            
+                if timer_id > -1:
+                    GLib.source_remove(timer_id)
+            
+                timer_id= GLib.timeout_add_seconds(delta, log, logged)
+        else:
+            lapse = now - logged.timestamp
+            if lapse > .5 * duration:
+                log(logged)
+                logged = Log(url, metadata)
+                if timer_id > -1:
+                    GLib.source_remove(timer_id)
+                timer_id= GLib.timeout_add_seconds(int(.5*duration), log, logged)
+
+    return None
+   
 
 conn = Gio.bus_get_sync(Gio.BusType.SESSION)
 
@@ -20,7 +78,6 @@ conn.signal_subscribe(
     None,
     Gio.DBusSignalFlags.NONE,
     callback)
-
 
 
 loop = GLib.MainLoop()
