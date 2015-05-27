@@ -1,6 +1,9 @@
 from gi.repository import GLib
 from gi.repository import Gio
+from datetime import datetime
 from time import time
+import json
+
 
 class Log():
     def __init__(self, url, metadata, timestamp=None):
@@ -13,14 +16,22 @@ class Log():
         self.metadata = metadata
         
     def __repr__(self):
-        return str(vars(self))
+        attrs = vars(self)
+        attrs['creation_date'] = datetime.utcnow().isoformat()
+        return str(attrs)
+        
+    def serialize(self):
+        return json.dumps({
+                'metadata': self.metadata,
+                'creation_date': datetime.utcnow().isoformat()
+            })
         
         
 logged = None
 timer_id = -1
 
 def log(data):
-    print ('LOGGING:', data)
+    print ('LOGGING', data.serialize())
     return False
 
 
@@ -28,7 +39,7 @@ def callback(conn, sender, obj, iface, signal, value):
     global logged
     global timer_id
     obj_changed, properties, args = value
-    print ('DEBUG:', properties)
+    print ('DEBUG', properties)
     if 'Metadata' in properties:
         url = properties['Metadata']['xesam:url']
         duration = properties['Metadata']['vlc:time']
