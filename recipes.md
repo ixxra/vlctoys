@@ -13,4 +13,5 @@ sed -n 's/LOGGING //p' media.log > metadata.json
 Save to local mongodb
 =====================
 
-mongoimport 127.0.0.1:27017/vlc/log metadata.json
+mongoimport --host 127.0.0.1:27017 --db vlc --collection log < metadata.json
+
